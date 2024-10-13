@@ -6,7 +6,7 @@ from django.shortcuts import redirect
 from django.views.decorators.http import require_POST
 from .models import UserRowIgnore, DailyRankings
 import logging
-from django.db.models import Max, F, OuterRef, Subquery, Case, When, BooleanField, Value
+from django.db.models import Max, F, OuterRef, Subquery, Case, When, BooleanField, Value, IntegerField
 from datetime import timedelta, datetime
 from django.urls import reverse
 
@@ -87,6 +87,25 @@ def index(request):
         )
     ).order_by('is_ignored', '-daily_points')
 
+    # Get the sorting parameter
+    sort_genre = request.GET.get('sort_genre', '')
+
+    # Add sorting logic
+    if sort_genre:
+        novels = novels.annotate(
+            sort_order=Case(
+                When(genre=sort_genre, then=Value(0)),
+                default=F('genre'),
+                output_field=IntegerField(),
+            )
+        ).order_by('is_ignored', 'sort_order', '-daily_points')
+    else:
+        novels = novels.order_by('is_ignored', 'genre', '-daily_points')
+
+    # Get the list of genres present in the current set of novels
+    present_genres = novels.values_list('genre', flat=True).distinct()
+    genre_choices = {code: name for code, name in GENRE_CODES.items() if code in present_genres}
+
     for novel in novels:
         novel.is_ignored = novel.id in ignored_novel_ids
         novel.biggenre_name = BIGGENRE_CODES.get(novel.biggenre, "Unknown")
@@ -99,6 +118,8 @@ def index(request):
         'prev_date': prev_date,
         'next_date': next_date,
         'latest_date': latest_date,
+        'sort_genre': sort_genre,
+        'genre_choices': genre_choices,
     }
 
     return render(request, 'index.html', context)

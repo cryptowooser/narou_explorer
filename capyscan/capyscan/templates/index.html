@@ -53,6 +53,20 @@
                 </a>
             </div>
             
+            <!-- Add the sorting dropdown -->
+            <div class="mb-6">
+                <form method="get" action="{% url 'index' %}" class="flex items-center">
+                    <input type="hidden" name="date" value="{{ current_date|date:'Y-m-d' }}">
+                    <label for="sort_genre" class="mr-2 text-gray-700 font-semibold">ジャンルで並び替え:</label>
+                    <select name="sort_genre" id="sort_genre" class="form-select rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" onchange="this.form.submit()">
+                        <option value="">全てのジャンル</option>
+                        {% for code, name in genre_choices.items %}
+                            <option value="{{ code }}" {% if sort_genre == code %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </form>
+            </div>
+            
             <form method="post" action="{% url 'save_ignored_novels' %}">
                 {% csrf_token %}
                 <input type="hidden" name="current_date" value="{{ current_date|date:'Y-m-d' }}">

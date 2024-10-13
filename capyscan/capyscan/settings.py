@@ -148,7 +148,7 @@ STATIC_URL = '/static/'
 
 # This is where Django will look for static files during development
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "capyscan", "static"),
+    os.path.join(BASE_DIR, "static"),
 ]
 
 # This is where collectstatic will gather static files for production

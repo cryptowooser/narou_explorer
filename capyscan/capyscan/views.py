@@ -6,7 +6,7 @@ from django.shortcuts import redirect
 from django.views.decorators.http import require_POST
 from .models import UserRowIgnore, DailyRankings
 import logging
-from django.db.models import Max, F, OuterRef, Subquery
+from django.db.models import Max, F, OuterRef, Subquery, Case, When, BooleanField, Value
 from datetime import timedelta, datetime
 from django.urls import reverse
 
@@ -74,13 +74,18 @@ def index(request):
     ).values('daily_points')[:1]
     
     # Get novels from the current date, ordered by daily_points
+    ignored_novel_ids = UserRowIgnore.objects.filter(user=user, is_ignored=True).values_list('row_id', flat=True)
+
     novels = NovelInfo.objects.filter(
         ncode__in=DailyRankings.objects.filter(date=current_date).values('ncode')
     ).annotate(
-        daily_points=Subquery(daily_points_subquery)
-    ).order_by('-daily_points')
-
-    ignored_novel_ids = UserRowIgnore.objects.filter(user=user, is_ignored=True).values_list('row_id', flat=True)
+        daily_points=Subquery(daily_points_subquery),
+        is_ignored=Case(
+            When(id__in=ignored_novel_ids, then=Value(True)),
+            default=Value(False),
+            output_field=BooleanField()
+        )
+    ).order_by('is_ignored', '-daily_points')
 
     for novel in novels:
         novel.is_ignored = novel.id in ignored_novel_ids
